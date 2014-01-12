@@ -1,0 +1,45 @@
+
+Version Info:
+	byte1:   length (always 4)
+	byte2:   0x00
+	byte3:   protocol version major
+	byte4:   protocol version minor
+
+Register Command or Data
+	byte1:   length
+	byte2:   0x01
+	byte3-4: identifier (assigned by Teensy)
+	byte5:   type, 0=command, 1=integer, 2=float
+	byte6:   reserved, use 0
+	byte7-n: name
+
+Write Data:
+	byte1:   length (always 10)
+        byte2:   0x02
+	byte3-4: identifier (assigned by Teensy)
+	byte5:   type, 1=integer, 2=float
+	byte6:   reserved, use 0
+	byte7-10: data, lsb first
+
+Enable/Disable:
+	byte1:   length (always 4)
+	byte2:   0x03
+        byte3:   1=enable&send IDs, 2=enable, 3=disabled
+        byte4:   reserved
+
+Command Begin:
+	byte1:   length (always 4)
+	byte2:   0x04
+	byte3-4: identifier (assigned by Teensy)
+
+Command End:
+	byte1:   length (always 4)
+	byte2:   0x05
+	byte3-4: identifier (assigned by Teensy)
+
+Command Once:
+	byte1:   length (always 4)
+	byte2:   0x06
+	byte3-4: identifier (assigned by Teensy)
+
+
