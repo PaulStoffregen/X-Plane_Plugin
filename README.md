@@ -48,3 +48,18 @@ Then simply edit the makefile and run make, as with the other systems.  A script
 This plugin has *never* been compiled on a native Windows system.  Paul does not use Windows and will not be pleased if asked any questions regarding how to build this code on Windows.  There is no technical support of any kind for this code, but especially when it comes to native Windows compilation, please do not ask.  Building on Linux is the best way.
 
 
+Printf Style Debugging
+----------------------
+
+The TeensyControls plugin code is loaded with printf() lines, which by default are not compiled.  To enable these, edit TeensyControls.h.  Uncomment these lines, and edit the IP number to the computer where you will display the messages.
+
+```
+//#define USE_PRINTF_DEBUG
+//#define PRINTF_ADDR "192.168.194.2"
+//#define PRINTF_ADDR "127.0.0.1"
+```
+
+The printf output is transmitted to a server which listens for these messages and prints them to a terminal.  The source code for this server is in the "listen" directory.  It has only been used on Linux.
+
+
+
