@@ -45,103 +45,177 @@ static int32_t bytes2in32(const void *ptr)
 }
 
 
-static void input_packet(teensy_t *t, const uint8_t *packet)
+static void decode_packet(teensy_t *t, const uint8_t *packetPtr, uint8_t len)
 {
-	int i, len, cmd, id, type;
+	int cmd, id, type;
 	item_t *item;
 	int32_t intval;
 	float floatval;
 	char *name;
-#if 1
-	printf("Input:");
-	for (i=0; i<24; i++) {
-		printf(" %02X", packet[i]);
+
+	cmd = *(packetPtr+1);
+	switch (cmd) {
+	  case 0x01: // register command or data
+		if (len < 7) break;
+		id = *(packetPtr + 2) | (*(packetPtr + 3) << 8);
+		type = *(packetPtr + 4);
+		name = (char *)(packetPtr + 6);
+		TeensyControls_new_item(t, id, type, name, len - 6);
+		break;
+
+	  case 0x02: // write data data
+		if (len < 10) break;
+		id = *(packetPtr + 2) | (*(packetPtr + 3) << 8);
+		type = *(packetPtr + 4);
+		item = TeensyControls_find_item(t, id);
+		if (!item) {
+			t->unknown_id_heard = 1;
+			break;
+		}
+		if (item->type != type || item->datawritable == 0) break;
+		intval = *(packetPtr + 6) | (*(packetPtr + 7) << 8)
+			| (*(packetPtr + 8) << 16) | (*(packetPtr + 9) << 24);
+		if (type == 1) { // integer
+			item->intval = intval;
+			item->intval_remote = intval;
+			item->changed_by_teensy = 1;
+		} else if (type == 2) { // float
+			//floatval = *(float *)((char *)(&intval));
+			floatval = bytes2float(&intval);
+			item->floatval = floatval;
+			item->floatval_remote = floatval;
+			item->changed_by_teensy = 1;
+		}
+		break;
+
+	  case 0x04: // command begin
+		if (len < 4) break;
+		id = *(packetPtr + 2) | (*(packetPtr + 3) << 8);
+		item = TeensyControls_find_item(t, id);
+		if (!item) {
+			t->unknown_id_heard = 1;
+			break;
+		}
+		if (item->type != 0 || item->command_count >= 128) break;
+		item->command_queue[item->command_count++] = cmd;
+		printf("Command Begin: id=%d, name=%s\n", id, item->name);
+		break;
+
+	  case 0x05: // command end
+		if (len < 4) break;
+		id = *(packetPtr + 2) | (*(packetPtr + 3) << 8);
+		item = TeensyControls_find_item(t, id);
+		if (!item) {
+			t->unknown_id_heard = 1;
+			break;
+		}
+		if (item->type != 0 || item->command_count >= 128) break;
+		item->command_queue[item->command_count++] = cmd;
+		printf("Command End: id=%d, name=%s\n", id, item->name);
+		break;
+
+	  case 0x06: // command once
+		if (len < 4) break;
+		id = *(packetPtr + 2) | (*(packetPtr + 3) << 8);
+		item = TeensyControls_find_item(t, id);
+		if (!item) {
+			t->unknown_id_heard = 1;
+			break;
+		}
+		if (item->type != 0 || item->command_count >= 128) break;
+		item->command_queue[item->command_count++] = cmd;
+		printf("Command Once: id=%d, name=%s\n", id, item->name);
+		break;
 	}
-	printf("\n");
+}
+
+static void input_packet(teensy_t *t, const uint8_t *packet) {
+	uint8_t i, j, cmd, fragment_id;
+	uint16_t len;
+	char ch;
+    
+#if 1
+	printf("Input:\n");
+	for (i=0; i<4; i++) {
+
+		printf("%02x  ", i*8);
+		for (j=0; j<16; j++) {
+			printf(" %02x", packet[i*16+j]);
+		}
+
+		printf("  ");
+		for (j=0; j<16; j++) {
+			ch = (char)packet[i*16+j];
+			if (ch<0x20 || ch>0x7e) {
+				printf(".");
+			} else {
+				printf("%c",ch);
+			}
+		}
+		printf("\n");
+	}
 #endif
 	i = 0;
 	do {
 		len = packet[i];
-		if (len < 2 || len > 64 - i) return;
+		printf("len=%d\n",len);
+		if (len < 2 ) return;
+		if (len > 64-i) {
+			if (packet[i+1] == 0xff) {
+				printf("Long Teensy command fragment with len>buffer space, not allowed (len=%d, bufspace=%d, cmd=%02x)\n", len, 64-i, packet[i+1]);
+				return;
+			}
+			if (len==0xff) {
+				len = packet[i+1] | (packet[i+2]<<8);
+				i+=3;
+			}
+			t->input_packet_bytes_missing = (len-(64-i));
+			t->input_packet_ptr = t->input_packet;
+			t->expect_fragment_id = 1;
+			memcpy(t->input_packet_ptr,&packet[i],64-i);
+			t->input_packet_ptr += (64-i);
+			printf("Start of long Teensy command received, %d bytes missing\n", t->input_packet_bytes_missing);
+			return;  // leave here, packet complete
+		}
 		cmd = packet[i + 1];
-		switch (cmd) {
+		printf("cmd=%d\n",cmd);
 
-		  case 0x01: // register command or data
-			if (len < 7) break;
-			id = packet[i + 2] | (packet[i + 3] << 8);
-			type = packet[i + 4];
-			name = (char *)(packet + i + 6);
-			TeensyControls_new_item(t, id, type, name, len - 6);
-			break;
+		if (cmd != 0xFF) {
+			if (t->expect_fragment_id != 0) {
+				printf("Expected Teensy command fragment %d not received (cmd=%d)\n", t->expect_fragment_id, cmd);
+				t->expect_fragment_id=0;
+			}
 
-		  case 0x02: // write data data
-			if (len < 10) break;
-			id = packet[i + 2] | (packet[i + 3] << 8);
-			type = packet[i + 4];
-			item = TeensyControls_find_item(t, id);
-			if (!item) {
-				t->unknown_id_heard = 1;
-				break;
+			decode_packet(t,&packet[i],len);
+		} else {
+			fragment_id = packet[i+2];
+			if (fragment_id != t->expect_fragment_id) {
+				  printf("Unexpected Teensy command fragment %d received, expected: %d\n", fragment_id, t->expect_fragment_id);
+				  t->expect_fragment_id=0;
+				  return;
 			}
-			if (item->type != type || item->datawritable == 0) break;
-			intval = packet[i + 6] | (packet[i + 7] << 8)
-			  | (packet[i + 8] << 16) | (packet[i + 9] << 24);
-			if (type == 1) { // integer
-				item->intval = intval;
-				item->intval_remote = intval;
-				item->changed_by_teensy = 1;
-			} else if (type == 2) { // float
-				//floatval = *(float *)((char *)(&intval));
-				floatval = bytes2float(&intval);
-				item->floatval = floatval;
-				item->floatval_remote = floatval;
-				item->changed_by_teensy = 1;
+			printf("Teensy command fragment %d received, len=%d, ptr=%d\n", fragment_id, len, (int)(t->input_packet_ptr-t->input_packet));
+			memcpy(t->input_packet_ptr,&packet[i+3],len-3);
+			t->input_packet_ptr+=len-3;
+			t->input_packet_bytes_missing-=len-3;
+			if (t->input_packet_bytes_missing==0) {
+				  printf("Long Teensy command complete, decoding\n");
+				  t->expect_fragment_id=0;
+				  decode_packet(t,t->input_packet,t->input_packet[0]);
+			} else {
+				if (t->input_packet_bytes_missing <0) {
+					printf("Mismatch in frame length, packet fragments invalid\n");
+					t->expect_fragment_id = 0;
+					return;
+				}
+				t->expect_fragment_id++;
+				printf("%d bytes still missing, expecting more command fragments (ptr=%d)\n",
+						  t->input_packet_bytes_missing, (int)(t->input_packet_ptr-t->input_packet));
 			}
-			break;
-
-		  case 0x04: // command begin
-			if (len < 4) break;
-			id = packet[i + 2] | (packet[i + 3] << 8);
-			item = TeensyControls_find_item(t, id);
-			if (!item) {
-				t->unknown_id_heard = 1;
-				break;
-			}
-			if (item->type != 0 || item->command_count >= 128) break;
-			item->command_queue[item->command_count++] = cmd;
-			printf("Command Begin: id=%d, name=%s\n", id, item->name);
-			break;
-
-		  case 0x05: // command end
-			if (len < 4) break;
-			id = packet[i + 2] | (packet[i + 3] << 8);
-			item = TeensyControls_find_item(t, id);
-			if (!item) {
-				t->unknown_id_heard = 1;
-				break;
-			}
-			if (item->type != 0 || item->command_count >= 128) break;
-			item->command_queue[item->command_count++] = cmd;
-			printf("Command End: id=%d, name=%s\n", id, item->name);
-			break;
-
-		  case 0x06: // command once
-			if (len < 4) break;
-			id = packet[i + 2] | (packet[i + 3] << 8);
-			item = TeensyControls_find_item(t, id);
-			if (!item) {
-				t->unknown_id_heard = 1;
-				break;
-			}
-			if (item->type != 0 || item->command_count >= 128) break;
-			item->command_queue[item->command_count++] = cmd;
-			printf("Command Once: id=%d, name=%s\n", id, item->name);
-			break;
 		}
 		i += len;
 	} while (i < 64);
 }
-
 
 void TeensyControls_update_xplane(float elapsed)
 {

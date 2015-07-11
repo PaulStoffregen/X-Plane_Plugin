@@ -36,8 +36,8 @@ else ifeq ($(OS), WINDOWS)
 #  sudo apt-get install mono-devel wine
 CC ?= i586-mingw32msvc-gcc
 INC += -ISDK/CHeaders/XPLM
-CFLAGS += -Wall -O2 -D$(OS) $(INC)
-LDFLAGS += -Wl,--version-script=linkscript.lnk
+CFLAGS += -Wall -O2 -D$(OS) $(INC) -g
+LDFLAGS += -Wl,--version-script=linkscript.lnk -g
 LDDYNFLAGS += -shared
 LIBS += SDK/Libraries/Win/XPLM.lib -lhid -lsetupapi -lwsock32
 TARGET ?= win.xpl
