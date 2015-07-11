@@ -165,10 +165,6 @@ static void input_packet(teensy_t *t, const uint8_t *packet) {
 				printf("Long Teensy command fragment with len>buffer space, not allowed (len=%d, bufspace=%d, cmd=%02x)\n", len, 64-i, packet[i+1]);
 				return;
 			}
-			if (len==0xff) {
-				len = packet[i+1] | (packet[i+2]<<8);
-				i+=3;
-			}
 			t->input_packet_bytes_missing = (len-(64-i));
 			t->input_packet_ptr = t->input_packet;
 			t->expect_fragment_id = 1;
