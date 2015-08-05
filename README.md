@@ -76,7 +76,7 @@ This plugin has *never* been compiled on a native Windows system.  Paul does not
 Cross-build - multi arch ("fat") plugin
 ---------------------------------------
 
-Once you have the the standard build procedure working, you may want to create a so-called "fat" plugin, that contains *al*l* six architectures (Windows, Linux and OSX, each on 32 and 64 bits). Actually, that will give you five binaries, as the OSX version contains 32 and 64 bits in a single file (see http://www.xsquawkbox.net/xpsdk/mediawiki/BuildInstall#Fat_Plugins) 
+Once you have the the standard build procedure working, you may want to create a so-called "fat" plugin, that contains *all* six architectures (Windows, Linux and OSX, each on 32 and 64 bits). Actually, that will give you five binaries, as the OSX version contains 32 and 64 bits in a single file (see http://www.xsquawkbox.net/xpsdk/mediawiki/BuildInstall#Fat_Plugins) 
 
 The provided shell script `makeall.sh` was developed and tested by Jorg Bliesener on a Linux 64 bit machine running Fedora 22. It has an extensive list of prerequisites, notably osxcross (https://github.com/tpoechtrager/osxcross), which requires a dedicated download and setup procedure. Please check the comments at the start of the `makeall.sh` file about what is required to run it.
 
