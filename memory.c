@@ -178,13 +178,13 @@ static int parse_array_index(char *str)
 void TeensyControls_new_item(teensy_t *t, int id, int type, const char *name, int namelen)
 {
 	item_t *item;
-	char str[64];
+	char str[1024];
 	XPLMCommandRef cmdref = NULL;
 	XPLMDataRef dataref = NULL;
 	XPLMDataTypeID datatype = 0;
 	int index, datawritable = 0;
 
-	if (!t || !name || namelen >= 64) return;
+	if (!t || !name || namelen >= 1024) return;
 	memcpy(str, name, namelen);
 	str[namelen] = 0;
 	index = parse_array_index(str);

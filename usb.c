@@ -24,8 +24,6 @@ static int num_thread_alive(void)
 #if defined(MACOSX)
 
 
-static CFStringRef dev_run_mode = CFSTR("TeensyControlsDeviceRunMode");
-
 
 // called from input thread
 static void input_callback(void *context, IOReturn r, void *dev, IOHIDReportType type,
@@ -168,16 +166,15 @@ int TeensyControls_usb_init(void)
 	IOHIDManagerSetDeviceMatchingMultiple(hmgr, array);
 	CFRelease(array);
 	array = NULL;
-	IOHIDManagerScheduleWithRunLoop(hmgr, CFRunLoopGetCurrent(), dev_run_mode);
+	IOHIDManagerScheduleWithRunLoop(hmgr, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 	IOHIDManagerRegisterDeviceMatchingCallback(hmgr, attach_callback, NULL);
 	IOHIDManagerRegisterDeviceRemovalCallback(hmgr, detach_callback, NULL);
 	ret = IOHIDManagerOpen(hmgr, kIOHIDOptionsTypeNone);
 	if (ret != kIOReturnSuccess) {
 		IOHIDManagerUnscheduleFromRunLoop(hmgr,
-			CFRunLoopGetCurrent(), dev_run_mode);
+			CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 		goto fail;
 	}
-	CFRunLoopAddCommonMode(CFRunLoopGetCurrent(), dev_run_mode);
 	return 1;
 fail:
 	if (array) CFRelease(array);
@@ -189,7 +186,7 @@ fail:
 void TeensyControls_find_new_usb_devices(void)
 {
 	while (1) {
-		int r = CFRunLoopRunInMode(dev_run_mode, 0, true);
+		int r = CFRunLoopRunInMode(kCFRunLoopDefaultMode, 0, true);
 		if (r != kCFRunLoopRunHandledSource) break;
 	}
 }
@@ -218,6 +215,9 @@ void TeensyControls_usb_close(void)
 		IOHIDManagerRegisterDeviceMatchingCallback(hmgr, NULL, NULL);
 		IOHIDManagerRegisterDeviceRemovalCallback(hmgr, NULL, NULL);
 		IOHIDManagerClose(hmgr, 0);
+		IOHIDManagerUnscheduleFromRunLoop(hmgr, CFRunLoopGetCurrent(),
+			kCFRunLoopDefaultMode);
+		CFRelease(hmgr);
 		hmgr = NULL;
 	}
 	while (++wait < 20 && num_thread_alive() > 0) {

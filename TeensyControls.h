@@ -8,7 +8,7 @@
 #include <time.h>
 
 //#define USE_PRINTF_DEBUG
-//#define PRINTF_ADDR "192.168.194.2"
+//#define PRINTF_ADDR "10.0.0.123"
 //#define PRINTF_ADDR "127.0.0.1"
 
 #if defined(MACOSX)
@@ -147,6 +147,11 @@ typedef struct teensy_struct {
 	int output_packet_len;
 	int unknown_id_heard;
 	//item_t *itemlists[64]; // TODO: rapid lookup by ID....
+	
+	uint8_t input_packet[256];
+	uint8_t expect_fragment_id;
+	uint8_t *input_packet_ptr;
+	int32_t input_packet_bytes_missing;
 	struct teensy_struct *next;
 } teensy_t;
 

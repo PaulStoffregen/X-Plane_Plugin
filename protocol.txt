@@ -5,14 +5,26 @@ Version Info:
 	byte3:   protocol version major
 	byte4:   protocol version minor
 
-Register Command or Data
-	byte1:   length
+Register Command or Data:
+	byte1:   total data length 
+		 If the dataref name is very long, it might not fit
+		 in a single HID packet, which is limited to 64 bytes.
+		 In this case, the first fragment fills up all the
+		 remaining space in the first HID packet. Following
+		 fragments are sent with byte2=0xff and complement
+		 the name.
 	byte2:   0x01
 	byte3-4: identifier (assigned by Teensy)
 	byte5:   type, 0=command, 1=integer, 2=float
 	byte6:   reserved, use 0
 	byte7-n: name
 
+Fragmented packet continuation for long dataref names (see above):
+	byte1:	 length of fragment
+	byte2:   0xff
+	byte3:   fragment counter
+	byte4-n: data
+	
 Write Data:
 	byte1:   length (always 10)
         byte2:   0x02

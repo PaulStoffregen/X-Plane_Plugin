@@ -13,11 +13,36 @@ http://forums.x-plane.org/index.php?s=2bd25a88f1732936c50e18439f6f645f&showtopic
 No Technical Support
 --------------------
 
-Since the development of Teensy 3.0 in late 2012, PJRC simply as not had the resources to continue developing this plugin.  This source code is being released in the hope it can benefit software developers and flight simulatation enthusiasts, who might be able to update is needed for newer versions of X-Plane.
+Since the development of Teensy 3.0 in late 2012, PJRC simply as not had the resources to continue developing this plugin.  This source code is being released in the hope it can benefit software developers and flight simulatation enthusiasts, who might be able to update is needed for newer versions of X-Plane. In 2015, Jorg Bliesener provided some additions for datarefs with more than 58 characters, a cross-compile build script and a patch that resolves crashes on exit for OSX.
 
 There is *no technical support* available for this software.
 
 THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+Binaries
+--------
+
+There is a compiled version of the plugin in the `target` folder of this repository. You can download it as either a zip file or as a directory. Copy it to your X-Plane's `Resources\plugin` folder. After this, you should have the following folder structure:
+
+```
+-+- X-Plane 10
+ |--- ...
+ |-+- Resources
+   |--- ...
+   |-+- plugins
+   |-+- ...
+     |-+- TeensyPlugin
+       |-+- 32
+       | |--- lin.xpl
+       | |--- win.xpl
+       |
+	   |-+- 64
+	   | |--- lin.xpl
+	   | |--- win.xpl
+	   |
+	   |--- mac.xpl
+```
 
 
 Building The Code
@@ -46,6 +71,14 @@ To install the necessary software on Ubuntu Linux, use one of these commands:
 Then simply edit the makefile and run make, as with the other systems.  A script is provided to automate copying the compiled code to a Windows machine named "xp" on your local network.  Of course, that Windows machine must be running a FTP server.  If a password is required, you can automate it with ".netrc" in your home directory.
 
 This plugin has *never* been compiled on a native Windows system.  Paul does not use Windows and will not be pleased if asked any questions regarding how to build this code on Windows.  There is no technical support of any kind for this code, but especially when it comes to native Windows compilation, please do not ask.  Building on Linux is the best way.
+
+
+Cross-build - multi arch ("fat") plugin
+---------------------------------------
+
+Once you have the the standard build procedure working, you may want to create a so-called "fat" plugin, that contains *all* six architectures (Windows, Linux and OSX, each on 32 and 64 bits). Actually, that will give you five binaries, as the OSX version contains 32 and 64 bits in a single file (see http://www.xsquawkbox.net/xpsdk/mediawiki/BuildInstall#Fat_Plugins) 
+
+The provided shell script `makeall.sh` was developed and tested by Jorg Bliesener on a Linux 64 bit machine running Fedora 22. It has an extensive list of prerequisites, notably osxcross (https://github.com/tpoechtrager/osxcross), which requires a dedicated download and setup procedure. Please check the comments at the start of the `makeall.sh` file about what is required to run it.
 
 
 Printf Style Debugging
